@@ -91,7 +91,7 @@ export default function Hero() {
             {/* YouTube Embed */}
             <iframe
               className="w-full h-full object-cover"
-              src="https://www.youtube.com/embed/S375j2cEKJE?mute=1&controls=1&modestbranding=1&rel=0&showinfo=0"
+              src="https://www.youtube.com/embed/SMaNdTcB17c?mute=1&controls=1&modestbranding=1&rel=0&showinfo=0"
               title="Featured Video - Song Creation Process"
               frameBorder="0"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
