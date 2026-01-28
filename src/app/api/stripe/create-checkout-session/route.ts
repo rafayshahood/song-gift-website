@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { stripe, PRICING, calculateTotal } from '@/lib/stripe';
+import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,7 +58,27 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Create Stripe checkout session
+    // Generate a unique ID for this checkout session
+    const checkoutId = `checkout_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+
+    // Store intake data temporarily in Supabase with the checkout ID
+    const { error: storeError } = await supabaseAdmin
+      .from('temp_checkout_data')
+      .insert({
+        checkout_id: checkoutId,
+        intake_payload: intake_payload,
+        customer_email: email,
+        delivery_speed: delivery_speed,
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
+      });
+
+    if (storeError) {
+      console.error('Failed to store checkout data:', storeError);
+      // Continue anyway - we'll use minimal metadata
+    }
+
+    // Create Stripe checkout session with minimal metadata
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
       payment_method_types: ['card'],
@@ -65,7 +86,7 @@ export async function POST(request: NextRequest) {
       customer_email: email,
       metadata: {
         delivery_speed,
-        intake_payload: JSON.stringify(intake_payload),
+        checkout_id: checkoutId, // Reference to full data
       },
       success_url: `${request.nextUrl.origin}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${request.nextUrl.origin}/checkout?canceled=1`,

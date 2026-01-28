@@ -78,12 +78,40 @@ export async function POST(request: NextRequest) {
 
       // Parse metadata
       const deliverySpeed = metadata.delivery_speed as 'standard' | 'rush';
-      let intakePayload;
-      try {
-        intakePayload = JSON.parse(metadata.intake_payload || '{}');
-      } catch (err) {
-        console.error('Failed to parse intake_payload:', err);
-        intakePayload = {};
+      const checkoutId = metadata.checkout_id;
+      
+      let intakePayload = {};
+      
+      // Try to retrieve full intake data from temporary table
+      if (checkoutId) {
+        const { data: checkoutData, error: fetchError } = await supabaseAdmin
+          .from('temp_checkout_data')
+          .select('intake_payload, customer_email, delivery_speed')
+          .eq('checkout_id', checkoutId)
+          .single();
+          
+        if (fetchError) {
+          console.error('Failed to fetch checkout data:', fetchError);
+        } else if (checkoutData) {
+          intakePayload = checkoutData.intake_payload;
+          console.log('Retrieved full intake data from temporary storage');
+          
+          // Clean up temporary data after use
+          await supabaseAdmin
+            .from('temp_checkout_data')
+            .delete()
+            .eq('checkout_id', checkoutId);
+        }
+      }
+      
+      // Fallback: if no intake data found, create minimal payload
+      if (!intakePayload || Object.keys(intakePayload).length === 0) {
+        console.warn('No intake data found, using minimal payload');
+        intakePayload = {
+          recipientName: metadata.recipient_name || 'Unknown',
+          coreMessage: metadata.core_message || 'Custom song request',
+          intakeCompletedAt: new Date().toISOString(),
+        };
       }
 
       // Validate required data
