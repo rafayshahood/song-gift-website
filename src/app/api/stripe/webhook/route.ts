@@ -52,6 +52,7 @@ export async function POST(request: NextRequest) {
     // Verify webhook signature
     let event: Stripe.Event;
     try {
+      // @ts-ignore - TypeScript doesn't recognize that signature is guaranteed to be string after null check
       event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err) {
       console.error('Webhook signature verification failed:', err);
