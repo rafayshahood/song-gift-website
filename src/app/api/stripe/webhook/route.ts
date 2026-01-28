@@ -21,12 +21,12 @@ function generateTrackingId(): string {
 }
 
 // Calculate expected delivery date
-function calculateDeliveryDate(deliverySpeed: 'standard' | 'rush'): Date {
+function calculateDeliveryDate(deliverySpeed: 'standard' | 'express'): Date {
   const now = new Date();
   const deliveryDate = new Date(now);
   
-  if (deliverySpeed === 'rush') {
-    // Rush: +1 day
+  if (deliverySpeed === 'express') {
+    // Express: +1 day
     deliveryDate.setDate(now.getDate() + 1);
   } else {
     // Standard: +2 days
@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
       const metadata = session.metadata || {};
 
       // Parse metadata
-      const deliverySpeed = metadata.delivery_speed as 'standard' | 'rush';
+      const clientDeliverySpeed = metadata.delivery_speed as 'standard' | 'rush';
+      const deliverySpeed = clientDeliverySpeed === 'rush' ? 'express' : 'standard';
       const checkoutId = metadata.checkout_id;
       
       let intakePayload = {};

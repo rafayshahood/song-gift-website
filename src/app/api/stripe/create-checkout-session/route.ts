@@ -15,13 +15,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate delivery speed
-    if (delivery_speed !== 'standard' && delivery_speed !== 'rush') {
+    // Validate delivery speed and normalize to database values
+    if (!['standard', 'rush'].includes(delivery_speed)) {
       return NextResponse.json(
         { error: 'Invalid delivery_speed. Must be "standard" or "rush"' },
         { status: 400 }
       );
     }
+
+    // Map client values to database values
+    const dbDeliverySpeed = delivery_speed === 'rush' ? 'express' : 'standard';
 
     // Calculate pricing
     const basePrice = PRICING.BASE_PRICE;
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest) {
         checkout_id: checkoutId,
         intake_payload: intake_payload,
         customer_email: email,
-        delivery_speed: delivery_speed,
+        delivery_speed: dbDeliverySpeed,
         created_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours
       });
