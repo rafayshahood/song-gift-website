@@ -7,19 +7,91 @@ import Navigation from '@/components/navigation/Navigation';
 import Footer from '@/components/sections/Footer';
 import { Button } from '@/components/ui/Button';
 
+interface OrderData {
+  tracking_id: string;
+  order_status: string;
+  expected_delivery_at: string;
+  created_at: string;
+  customer_email: string;
+  amount_paid: number;
+  currency: string;
+  delivery_speed: string;
+}
+
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get('session_id');
   const [isLoading, setIsLoading] = useState(true);
+  const [orderData, setOrderData] = useState<OrderData | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [pollingAttempts, setPollingAttempts] = useState(0);
+  const [copied, setCopied] = useState(false);
+
+  const fetchOrderData = async () => {
+    if (!sessionId) {
+      setError('No session ID found in URL');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/orders/by-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setOrderData(data);
+        setIsLoading(false);
+        return true; // Success
+      } else if (data.code === 'ORDER_NOT_READY' && pollingAttempts < 15) {
+        // Order not ready, continue polling
+        return false;
+      } else {
+        setError(data.message || 'Failed to load order information');
+        setIsLoading(false);
+        return true; // Stop polling
+      }
+    } catch (err) {
+      setError('Something went wrong. Please try again later.');
+      setIsLoading(false);
+      return true; // Stop polling
+    }
+  };
 
   useEffect(() => {
-    // Simulate loading time for better UX
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 1500);
+    if (!sessionId) return;
 
-    return () => clearTimeout(timer);
-  }, []);
+    const pollForOrder = async () => {
+      const success = await fetchOrderData();
+      
+      if (!success && pollingAttempts < 15) {
+        // Continue polling every 1 second for up to 15 seconds
+        setTimeout(() => {
+          setPollingAttempts(prev => prev + 1);
+        }, 1000);
+      }
+    };
+
+    pollForOrder();
+  }, [sessionId, pollingAttempts]);
+
+  const copyTrackingId = async () => {
+    if (orderData?.tracking_id) {
+      try {
+        await navigator.clipboard.writeText(orderData.tracking_id);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch (err) {
+        console.error('Failed to copy tracking ID:', err);
+      }
+    }
+  };
 
   if (isLoading) {
     return (
@@ -29,7 +101,53 @@ function CheckoutSuccessContent() {
         <main className="min-h-screen bg-background-soft flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="font-body text-text-muted">Processing your order...</p>
+            <p className="font-body text-text-muted">
+              {pollingAttempts > 0 ? 'Finalizing your order...' : 'Processing your order...'}
+            </p>
+            {pollingAttempts > 0 && (
+              <p className="font-body text-xs text-text-muted mt-2">
+                This may take a few moments
+              </p>
+            )}
+          </div>
+        </main>
+        <Footer />
+      </>
+    );
+  }
+
+  if (error) {
+    return (
+      <>
+        <AnnouncementBar />
+        <Navigation />
+        <main className="min-h-screen bg-background-soft">
+          <div className="max-w-2xl mx-auto px-4 py-16 text-center">
+            <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h1 className="font-heading text-2xl font-bold text-text-main mb-4">
+              Unable to Load Order
+            </h1>
+            <p className="font-body text-text-muted mb-8">{error}</p>
+            <div className="space-y-4">
+              <Button 
+                variant="primary" 
+                size="lg"
+                onClick={() => window.location.reload()}
+              >
+                Try Again
+              </Button>
+              <Button 
+                variant="outline" 
+                size="md"
+                onClick={() => window.location.href = '/track-order'}
+              >
+                Track Your Order
+              </Button>
+            </div>
           </div>
         </main>
         <Footer />
@@ -58,6 +176,81 @@ function CheckoutSuccessContent() {
           <p className="font-body text-text-muted mb-8 text-lg">
             Thank you for your order! Your custom song is now in production.
           </p>
+
+          {/* Order Details */}
+          {orderData && (
+            <div className="bg-white rounded-2xl shadow-soft border border-primary/10 p-6 mb-8">
+              <h2 className="font-heading text-xl font-semibold text-text-main mb-6">
+                Order Details
+              </h2>
+              
+              <div className="space-y-4">
+                {/* Tracking ID */}
+                <div className="bg-primary/5 rounded-xl p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-primary uppercase tracking-wide">Tracking ID</p>
+                      <p className="text-lg font-mono font-bold text-text-main">{orderData.tracking_id}</p>
+                    </div>
+                    <button
+                      onClick={copyTrackingId}
+                      className="flex items-center gap-2 px-3 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark transition-colors text-sm font-medium"
+                    >
+                      {copied ? (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                          Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Order Info Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                  <div>
+                    <p className="text-xs font-medium text-text-muted uppercase tracking-wide">Order Status</p>
+                    <p className="mt-1 font-semibold text-text-main">
+                      <span className="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                        {orderData.order_status}
+                      </span>
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-text-muted uppercase tracking-wide">Expected Delivery</p>
+                    <p className="mt-1 font-semibold text-text-main">
+                      {new Date(orderData.expected_delivery_at).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-text-muted uppercase tracking-wide">Delivery Speed</p>
+                    <p className="mt-1 font-semibold text-text-main capitalize">
+                      {orderData.delivery_speed === 'express' ? 'Rush (24-48h)' : 'Standard (48-72h)'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-text-muted uppercase tracking-wide">Amount Paid</p>
+                    <p className="mt-1 font-semibold text-text-main">
+                      ${(orderData.amount_paid / 100).toFixed(2)} {orderData.currency.toUpperCase()}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="bg-white rounded-2xl shadow-soft border border-primary/10 p-6 mb-8">
             <h2 className="font-heading text-xl font-semibold text-text-main mb-4">
@@ -97,21 +290,13 @@ function CheckoutSuccessContent() {
             </div>
           </div>
 
-          {sessionId && (
-            <div className="bg-primary/5 rounded-xl p-4 mb-8">
-              <p className="text-sm text-text-muted">
-                <strong>Session ID:</strong> {sessionId}
-              </p>
-            </div>
-          )}
-
           <div className="space-y-4">
             <Button 
               variant="primary" 
               size="lg"
-              onClick={() => window.location.href = '/track-order'}
+              onClick={() => window.location.href = `/track-order?tracking_id=${orderData?.tracking_id || ''}`}
             >
-              Track Your Order
+              Track My Order
             </Button>
             
             <Button 
