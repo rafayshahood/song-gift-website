@@ -74,7 +74,13 @@ export async function POST(request: NextRequest) {
       });
 
     if (storeError) {
-      console.error('Failed to store checkout data:', storeError);
+      console.error('Failed to store checkout data:', {
+        error: storeError,
+        code: storeError.code,
+        message: storeError.message,
+        details: storeError.details,
+        hint: storeError.hint
+      });
       // Continue anyway - we'll use minimal metadata
     }
 

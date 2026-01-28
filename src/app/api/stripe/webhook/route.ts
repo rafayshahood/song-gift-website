@@ -165,7 +165,16 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (insertError) {
-        console.error('Failed to insert order:', insertError);
+        console.error('Failed to insert order:', {
+          error: insertError,
+          code: insertError.code,
+          message: insertError.message,
+          details: insertError.details,
+          hint: insertError.hint,
+          sessionId,
+          customerEmail,
+          trackingId
+        });
         return NextResponse.json(
           { error: 'Failed to create order' },
           { status: 500 }
