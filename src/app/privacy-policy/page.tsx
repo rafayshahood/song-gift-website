@@ -7,7 +7,7 @@ import { SectionHeading, SectionDescription } from '@/components/ui/Typography';
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "Learn how SongGift protects your privacy and handles your personal information when creating custom songs.",
+  description: "Learn how we protect your personal stories and information when creating your custom song gifts with complete privacy.",
 };
 
 export default function PrivacyPolicy() {

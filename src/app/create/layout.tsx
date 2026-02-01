@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Custom Song",
-  description: "Create your personalized custom song with our step-by-step intake process.",
+  title: "Create a Custom Song Gift",
+  description: "Share your story and we'll craft a one-of-a-kind song gift. Choose your style, add personal details, and surprise someone special.",
 };
 
 export default function CreateLayout({

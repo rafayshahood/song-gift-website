@@ -10,8 +10,8 @@ import Footer from '@/components/sections/Footer';
 import { ValentinesBanner } from '@/components/ui/ValentinesBanner';
 
 export const metadata: Metadata = {
-  title: "Home | SongGift",
-  description: "Create personalized custom songs for your loved ones. Professional musicians craft unique songs based on your memories, emotions, and stories.",
+  title: "Custom Song Gift",
+  description: "Turn your love story into a personalized song gift. Professional musicians create unique songs from your memories in just days.",
 };
 
 

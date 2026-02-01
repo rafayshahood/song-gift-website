@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "FAQ",
-  description: "Frequently asked questions about our custom song creation service.",
+  title: "Questions & Answers",
+  description: "Everything you need to know about custom song gifts. Pricing, delivery, process, and more — all your questions answered.",
 };
 
 export default function FAQLayout({

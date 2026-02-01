@@ -100,7 +100,11 @@ export async function POST(request: NextRequest) {
               // Extract customer contact info from intake data
               customerName = (intakePayload as any).fullName || '';
               extractedCustomerEmail = (intakePayload as any).email || '';
-              customerPhone = (intakePayload as any).phoneNumber || '';
+              
+              // Prefer E.164 format for phone, fallback to display format, then basic phoneNumber
+              customerPhone = (intakePayload as any).customer_phone_e164 || 
+                             (intakePayload as any).customer_phone_display || 
+                             (intakePayload as any).phoneNumber || '';
               
               console.log('Retrieved full intake data for session:', frontendSessionId);
               console.log('Customer contact info:', { customerName, extractedCustomerEmail, customerPhone });

@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Checkout",
-  description: "Complete your custom song order with secure payment processing.",
+  title: "Complete Your Order",
+  description: "You're moments away from gifting something truly magical. Secure checkout for your personalized song creation.",
 };
 
 export default function CheckoutLayout({

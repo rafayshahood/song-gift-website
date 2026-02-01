@@ -6,8 +6,8 @@ import { SectionWrapper } from '@/components/ui/SectionWrapper';
 import { SectionHeading, SectionDescription } from '@/components/ui/Typography';
 
 export const metadata: Metadata = {
-  title: "Contact",
-  description: "Need help with your custom song order? Contact our support team for assistance with your SongGift experience.",
+  title: "Get Help",
+  description: "Need assistance with your custom song order? Our support team is here to make your gift experience perfect.",
 };
 
 export default function Contact() {

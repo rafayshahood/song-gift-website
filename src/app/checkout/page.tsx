@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { SongDetailsModal } from '@/components/ui/SongDetailsModal';
 import { useIntakeData } from '@/hooks/useIntakeData';
 import { getSessionId } from '@/utils/sessionManager';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
 
 export default function Checkout() {
@@ -18,26 +19,40 @@ export default function Checkout() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
-  // Email validation
+  // Enhanced validation functions
+  const validateName = (name: string): string => {
+    const trimmed = name.trim();
+    if (!trimmed) return 'Full name is required';
+    if (trimmed.length < 2) return 'Name must be at least 2 characters';
+    return '';
+  };
+
+  const validateEmail = (email: string): string => {
+    const trimmed = email.trim();
+    if (!trimmed) return 'Email address is required';
+    
+    // RFC-style practical email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmed)) return 'Please enter a valid email address';
+    return '';
+  };
+
+  // Legacy email validation for backward compatibility
   const isValidEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   };
 
-  // Phone validation (basic - just check for digits and common formats)
-  const isValidPhone = (phone: string) => {
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    const cleanPhone = phone.replace(/[\s\-\(\)]/g, '');
-    return cleanPhone.length >= 10 && phoneRegex.test(cleanPhone);
-  };
-
   // Check if contact info is complete and valid
   const isContactInfoValid = () => {
-    return intakeData.fullName.trim() !== '' &&
-           intakeData.email.trim() !== '' &&
-           isValidEmail(intakeData.email) &&
-           intakeData.phoneNumber.trim() !== '' &&
-           isValidPhone(intakeData.phoneNumber);
+    const nameError = validateName(intakeData.fullName || '');
+    const emailError = validateEmail(intakeData.email || '');
+    
+    // Check phone validation - prefer E.164 format if available
+    const hasValidPhone = intakeData.customer_phone_e164 || 
+                         (intakeData.phoneNumber && isValidPhoneNumber(intakeData.phoneNumber));
+    
+    return !nameError && !emailError && hasValidPhone;
   };
 
   // Generate personalized message
@@ -178,30 +193,29 @@ export default function Checkout() {
   const handleCheckout = async () => {
     if (!isIntakeComplete) return;
 
-    // Validate contact information before proceeding
-    if (!intakeData.fullName || !intakeData.fullName.trim()) {
-      alert('Please enter your full name before proceeding.');
+    // Enhanced validation for contact information
+    const nameError = validateName(intakeData.fullName || '');
+    if (nameError) {
+      alert(`Name validation error: ${nameError}`);
       return;
     }
 
-    if (!intakeData.email || !intakeData.email.trim()) {
-      alert('Please enter your email address before proceeding.');
+    const emailError = validateEmail(intakeData.email || '');
+    if (emailError) {
+      alert(`Email validation error: ${emailError}`);
       return;
     }
 
-    if (!isValidEmail(intakeData.email)) {
-      alert('Please enter a valid email address (e.g., john@example.com).');
-      return;
-    }
-
-    if (!intakeData.phoneNumber || !intakeData.phoneNumber.trim()) {
+    // Validate phone using E.164 format if available, fallback to basic validation
+    const phoneToValidate = intakeData.customer_phone_e164 || intakeData.phoneNumber;
+    if (!phoneToValidate || !phoneToValidate.trim()) {
       alert('Please enter your phone number before proceeding.');
       return;
     }
 
-    // Additional comprehensive validation
-    if (!isContactInfoValid()) {
-      alert('Please ensure all contact information is complete and valid before proceeding.');
+    // If we have E.164 format, it's already validated; otherwise check basic format
+    if (!intakeData.customer_phone_e164 && !isValidPhoneNumber(intakeData.phoneNumber)) {
+      alert('Please enter a valid phone number with country code.');
       return;
     }
 

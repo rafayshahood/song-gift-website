@@ -6,8 +6,8 @@ import { SectionWrapper } from '@/components/ui/SectionWrapper';
 import { SectionHeading, SectionDescription } from '@/components/ui/Typography';
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions",
-  description: "Read the terms and conditions for using SongGift's custom song creation services.",
+  title: "Terms of Service",
+  description: "Our terms for custom song creation services. Clear guidelines for ordering, delivery, and your personalized music experience.",
 };
 
 export default function Terms() {

@@ -1,8 +1,8 @@
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: "Track Order",
-  description: "Track the progress of your custom song order. Get real-time updates on your personalized song creation process.",
+  title: "Track Your Song",
+  description: "Follow your custom song's journey from creation to delivery. Get real-time updates on your personalized gift's progress.",
 };
 
 export default function TrackOrderLayout({

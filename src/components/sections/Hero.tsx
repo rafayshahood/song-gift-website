@@ -1,22 +1,61 @@
 'use client';
 
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
 import { SectionWrapper } from '@/components/ui/SectionWrapper';
 import { SectionHeading, SectionDescription } from '@/components/ui/Typography';
 
 export default function Hero() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isMuted, setIsMuted] = useState(true);
+  const [showUnmuteButton, setShowUnmuteButton] = useState(false);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const attemptAutoplay = async () => {
+      try {
+        // First try autoplay with sound
+        video.muted = false;
+        await video.play();
+        setIsMuted(false);
+        setShowUnmuteButton(false);
+      } catch (error) {
+        try {
+          // Fallback to muted autoplay
+          video.muted = true;
+          await video.play();
+          setIsMuted(true);
+          setShowUnmuteButton(true);
+        } catch (mutedError) {
+          console.log('Autoplay blocked entirely');
+          setShowUnmuteButton(true);
+        }
+      }
+    };
+
+    attemptAutoplay();
+  }, []);
+
+  const handleUnmute = () => {
+    const video = videoRef.current;
+    if (video) {
+      video.muted = false;
+      setIsMuted(false);
+      setShowUnmuteButton(false);
+      video.play().catch(() => {
+        // If play fails, keep the unmute button visible
+        setShowUnmuteButton(true);
+      });
+    }
+  };
 
   return (
     <SectionWrapper 
       className="relative overflow-hidden bg-gradient-to-br from-background-main via-background-soft to-primary/5 py-8 md:py-12"
       spacing="sm"
     >
-      {/* Background Video Placeholder */}
-      <div className="absolute inset-0 z-0">
-        <div className="w-full h-full bg-gradient-to-br from-background-soft/80 to-background-main/60">
-        </div>
-      </div>
-
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
         {/* Content */}
         <div className="text-center lg:text-left">
@@ -88,17 +127,33 @@ export default function Hero() {
         <div className="relative flex justify-center">
           {/* Fixed Video Container */}
           <div className="w-full max-w-[264px] sm:max-w-[297px] aspect-[9/16] bg-gradient-to-br from-white/90 to-background-soft/90 backdrop-blur-sm rounded-3xl shadow-soft-lg border border-white/50 overflow-hidden">
-            {/* YouTube Embed with nocookie domain for less branding */}
-            <iframe
+            {/* Local MP4 Video */}
+            <video
+              ref={videoRef}
               className="w-full h-full object-cover"
-              src="https://www.youtube-nocookie.com/embed/uRQsEE_yP1M?mute=1&controls=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&cc_load_policy=0&disablekb=1&fs=1&playsinline=1&origin=https://song-gift-website.vercel.app"
+              src="/Musical-Content/Videos/SongGit-Ad.mp4"
               title="Featured Video - Song Creation Process"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-              loading="lazy"
+              controls
+              playsInline
+              preload="metadata"
+              loop
               style={{ objectFit: 'cover' }}
             />
+            
+            {/* Unmute Button Overlay */}
+            {showUnmuteButton && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                <button
+                  onClick={handleUnmute}
+                  className="bg-white/90 hover:bg-white text-text-main rounded-full p-3 shadow-lg transition-all duration-200 hover:scale-105"
+                  aria-label="Tap to unmute video"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 14.142M9 9v6l4-3-4-3z" />
+                  </svg>
+                </button>
+              </div>
+            )}
           </div>
           
           {/* Decorative elements */}

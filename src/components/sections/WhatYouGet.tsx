@@ -1,13 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
+import { SONGS } from '@/data/songs';
 
 export default function WhatYouGet() {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [hasStartedOnce, setHasStartedOnce] = useState(false);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  
+  // Use "Front Porch Promise" as the featured song
+  const featuredSong = SONGS[1]; // Front Porch Promise
+
+  // Format time as mm:ss
+  const formatTime = (time: number) => {
+    if (isNaN(time)) return '0:00';
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  // Handle audio playback
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('ended', handleEnded);
+
+    if (isPlaying) {
+      setIsLoading(true);
+      
+      // Set random start position on first play only
+      if (!hasStartedOnce && audio.duration) {
+        const randomStart = audio.duration * (0.1 + Math.random() * 0.35);
+        audio.currentTime = randomStart;
+        setHasStartedOnce(true);
+      }
+      
+      audio.play().then(() => {
+        setIsLoading(false);
+      }).catch((error) => {
+        console.error('Audio play failed:', error);
+        setIsLoading(false);
+        setIsPlaying(false);
+      });
+    } else {
+      audio.pause();
+      setIsLoading(false);
+    }
+
+    return () => {
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('ended', handleEnded);
+    };
+  }, [isPlaying, hasStartedOnce]);
 
   const handlePlayPause = () => {
+    if (isLoading) return;
     setIsPlaying(!isPlaying);
-    // In a real implementation, this would control actual audio playback
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const audio = audioRef.current;
+    if (!audio || !duration) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const percentage = clickX / rect.width;
+    const newTime = percentage * duration;
+    
+    audio.currentTime = newTime;
+    setCurrentTime(newTime);
   };
 
   return (
@@ -45,10 +126,16 @@ export default function WhatYouGet() {
                     {/* Play/Pause Button */}
                     <button 
                       onClick={handlePlayPause}
-                      className="absolute inset-0 w-full h-full rounded-full hover:bg-black/10 transition-colors flex items-center justify-center group"
+                      disabled={isLoading}
+                      className="absolute inset-0 w-full h-full rounded-full hover:bg-black/10 transition-colors flex items-center justify-center group disabled:cursor-not-allowed"
                     >
                       <div className="w-16 h-16 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-soft-lg group-hover:bg-white transition-colors">
-                        {isPlaying ? (
+                        {isLoading ? (
+                          <svg className="w-6 h-6 text-primary animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="m4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : isPlaying ? (
                           <svg className="w-6 h-6 text-primary" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z"/>
                           </svg>
@@ -67,10 +154,10 @@ export default function WhatYouGet() {
             {/* Song Information */}
             <div className="text-center mb-6">
               <h3 className="font-heading text-2xl font-semibold text-text-main mb-2">
-                "Your Love Story"
+                "{featuredSong.title}"
               </h3>
               <p className="font-body text-text-muted mb-4">
-                Custom Song for Sarah & Michael
+                Sample Custom Song
               </p>
               
               {/* Waveform */}
@@ -90,16 +177,30 @@ export default function WhatYouGet() {
               </div>
               
               {/* Progress Bar */}
-              <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                <div className="bg-primary h-2 rounded-full" style={{ width: '35%' }}></div>
+              <div 
+                className="w-full bg-gray-200 rounded-full h-2 mb-4 cursor-pointer hover:bg-gray-300 transition-colors"
+                onClick={handleProgressClick}
+              >
+                <div 
+                  className="bg-primary h-2 rounded-full transition-all duration-150" 
+                  style={{ width: duration ? `${(currentTime / duration) * 100}%` : '0%' }}
+                ></div>
               </div>
               
               {/* Time */}
               <div className="flex justify-between text-sm text-text-muted">
-                <span>1:24</span>
-                <span>3:47</span>
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
               </div>
             </div>
+
+            {/* Hidden Audio Element */}
+            <audio
+              ref={audioRef}
+              src={featuredSong.src}
+              preload="metadata"
+              onEnded={() => setIsPlaying(false)}
+            />
 
             {/* Features List */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-8">

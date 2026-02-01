@@ -35,7 +35,12 @@ export interface IntakeData {
   // Contact information (required for checkout)
   fullName: string;
   email: string;
-  phoneNumber: string;
+  phoneNumber: string; // Keep for backward compatibility
+  
+  // Enhanced phone fields for international support
+  customer_phone_e164: string; // E.164 format (e.g., +923001234567)
+  customer_phone_display: string; // Display format (e.g., +92 300 1234567)
+  customer_phone_country: string; // Country code (e.g., "PK")
   
   // Other steps (keeping existing for now)
   songType: string;

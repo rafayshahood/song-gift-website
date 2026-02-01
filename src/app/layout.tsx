@@ -4,6 +4,7 @@ import Script from "next/script";
 import "./globals.css";
 import { IntakeProvider } from "@/context/IntakeContext";
 import { SessionInitializer } from "@/components/SessionInitializer";
+import NewsletterPopupManager from "@/components/NewsletterManager";
 
 const playfairDisplay = Playfair_Display({
   variable: "--font-playfair-display",
@@ -25,10 +26,10 @@ const sourceSerif4 = Source_Serif_4({
 
 export const metadata: Metadata = {
   title: {
-    default: "SongGift | Gift a Custom Song",
+    default: "Custom Song Gift | SongGift",
     template: "%s | SongGift"
   },
-  description: "Create personalized custom songs for your loved ones. Professional musicians craft unique songs based on your memories, emotions, and stories.",
+  description: "Turn your love story into a personalized song gift. Professional musicians create unique songs from your memories in just days.",
   metadataBase: new URL('https://songgift.app'),
   icons: {
     icon: [
@@ -39,8 +40,8 @@ export const metadata: Metadata = {
     shortcut: '/favicon.png?v=3',
   },
   openGraph: {
-    title: "SongGift | Gift a Custom Song",
-    description: "Create personalized custom songs for your loved ones. Professional musicians craft unique songs based on your memories, emotions, and stories.",
+    title: "Custom Song Gift | SongGift",
+    description: "Turn your love story into a personalized song gift. Professional musicians create unique songs from your memories in just days.",
     url: 'https://songgift.app',
     siteName: 'SongGift',
     type: 'website',
@@ -55,8 +56,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: "SongGift | Gift a Custom Song",
-    description: "Create personalized custom songs for your loved ones. Professional musicians craft unique songs based on your memories, emotions, and stories.",
+    title: "Custom Song Gift | SongGift",
+    description: "Turn your love story into a personalized song gift. Professional musicians create unique songs from your memories in just days.",
     images: ['/songgift_logo_black.png'],
   },
   robots: {
@@ -84,6 +85,7 @@ export default function RootLayout({
         <IntakeProvider>
           {children}
         </IntakeProvider>
+        <NewsletterPopupManager />
         
         {/* GoHighLevel Chatbot (Hillary) */}
         <Script

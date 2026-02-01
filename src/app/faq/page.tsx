@@ -1,14 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Metadata } from 'next';
 import AnnouncementBar from '@/components/sections/AnnouncementBar';
 import Navigation from '@/components/navigation/Navigation';
 import Footer from '@/components/sections/Footer';
 import { ValentinesBanner } from '@/components/ui/ValentinesBanner';
 import { SectionWrapper } from '@/components/ui/SectionWrapper';
 import { SectionHeading, SectionDescription } from '@/components/ui/Typography';
-
 
 export default function FAQ() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);

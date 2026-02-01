@@ -1,14 +1,31 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { Metadata } from 'next';
 import AnnouncementBar from '@/components/sections/AnnouncementBar';
 import Navigation from '@/components/navigation/Navigation';
 import { ProgressHeader, StepContainer, OptionButton, NavigationFooter } from '@/components/ui/intake';
 import { useIntakeData } from '@/hooks/useIntakeData';
+import PhoneInputComponent from '@/components/ui/PhoneInput';
+import { isValidPhoneNumber } from 'libphonenumber-js';
 
+// Note: This is a client component, so metadata should be handled in layout.tsx or a parent server component
 export default function CreateSong() {
   const [currentStep, setCurrentStep] = useState(1);
   const { intakeData, updateIntakeData, updateMultiSelectData, completeIntake, isLoaded, getFirstIncompleteStep } = useIntakeData();
+  
+  // Validation state for Step 6
+  const [validationErrors, setValidationErrors] = useState({
+    fullName: '',
+    email: '',
+    phone: ''
+  });
+  const [phoneValidation, setPhoneValidation] = useState({
+    isValid: false,
+    e164: '',
+    display: '',
+    country: ''
+  });
 
   // Check for target step from sessionStorage (when redirected from checkout)
   useEffect(() => {
@@ -23,6 +40,70 @@ export default function CreateSong() {
   }, [isLoaded]);
 
   const totalSteps = 6;
+
+  // Validation functions
+  const validateName = (name: string): string => {
+    const trimmed = name.trim();
+    if (!trimmed) return 'Full name is required';
+    if (trimmed.length < 2) return 'Name must be at least 2 characters';
+    return '';
+  };
+
+  const validateEmail = (email: string): string => {
+    const trimmed = email.trim();
+    if (!trimmed) return 'Email address is required';
+    
+    // RFC-style practical email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmed)) return 'Please enter a valid email address';
+    return '';
+  };
+
+  const validatePhone = (): string => {
+    if (!phoneValidation.isValid) return 'Please enter a valid phone number';
+    return '';
+  };
+
+  // Handle field validation on blur
+  const handleFieldBlur = (field: 'fullName' | 'email' | 'phone') => {
+    const errors = { ...validationErrors };
+    
+    switch (field) {
+      case 'fullName':
+        errors.fullName = validateName(intakeData.fullName);
+        break;
+      case 'email':
+        errors.email = validateEmail(intakeData.email);
+        break;
+      case 'phone':
+        errors.phone = validatePhone();
+        break;
+    }
+    
+    setValidationErrors(errors);
+  };
+
+  // Handle phone validation changes
+  const handlePhoneValidation = (isValid: boolean, e164?: string, display?: string, country?: string) => {
+    setPhoneValidation({
+      isValid,
+      e164: e164 || '',
+      display: display || '',
+      country: country || ''
+    });
+
+    // Update intake data with enhanced phone fields
+    if (isValid && e164 && display && country) {
+      updateIntakeData('customer_phone_e164', e164);
+      updateIntakeData('customer_phone_display', display);
+      updateIntakeData('customer_phone_country', country);
+    }
+
+    // Clear phone error if valid
+    if (isValid && validationErrors.phone) {
+      setValidationErrors(prev => ({ ...prev, phone: '' }));
+    }
+  };
 
   // Helper function to generate personalized text based on step and recipient data
   const getPersonalizedText = (step: number) => {
@@ -107,9 +188,12 @@ export default function CreateSong() {
       case 5:
         return intakeData.coreMessage.trim() !== '';
       case 6:
-        return intakeData.fullName?.trim() !== '' && 
-               intakeData.email?.trim() !== '' && 
-               intakeData.phoneNumber?.trim() !== '';
+        // Enhanced validation for Step 6
+        const nameError = validateName(intakeData.fullName || '');
+        const emailError = validateEmail(intakeData.email || '');
+        const phoneError = validatePhone();
+        
+        return !nameError && !emailError && !phoneError && phoneValidation.isValid;
       default:
         return false;
     }
@@ -605,11 +689,24 @@ export default function CreateSong() {
                   type="text"
                   id="contact-full-name"
                   value={intakeData.fullName}
-                  onChange={(e) => updateIntakeData('fullName', e.target.value)}
+                  onChange={(e) => {
+                    const trimmed = e.target.value.trimStart(); // Prevent leading spaces
+                    updateIntakeData('fullName', trimmed);
+                    // Clear error on change
+                    if (validationErrors.fullName) {
+                      setValidationErrors(prev => ({ ...prev, fullName: '' }));
+                    }
+                  }}
+                  onBlur={() => handleFieldBlur('fullName')}
                   placeholder="Enter your full name"
-                  className="w-full px-4 py-3 text-base border border-primary/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white shadow-soft"
+                  className={`w-full px-4 py-3 text-base border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white shadow-soft ${
+                    validationErrors.fullName ? 'border-red-500' : 'border-primary/20'
+                  }`}
                   required
                 />
+                {validationErrors.fullName && (
+                  <p className="text-sm text-red-600 mt-2">{validationErrors.fullName}</p>
+                )}
               </div>
 
               {/* Email Address */}
@@ -621,14 +718,29 @@ export default function CreateSong() {
                   type="email"
                   id="contact-email"
                   value={intakeData.email}
-                  onChange={(e) => updateIntakeData('email', e.target.value)}
+                  onChange={(e) => {
+                    const trimmed = e.target.value.trim();
+                    updateIntakeData('email', trimmed);
+                    // Clear error on change
+                    if (validationErrors.email) {
+                      setValidationErrors(prev => ({ ...prev, email: '' }));
+                    }
+                  }}
+                  onBlur={() => handleFieldBlur('email')}
                   placeholder="Enter your email address"
-                  className="w-full px-4 py-3 text-base border border-primary/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white shadow-soft"
+                  className={`w-full px-4 py-3 text-base border rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white shadow-soft ${
+                    validationErrors.email ? 'border-red-500' : 'border-primary/20'
+                  }`}
                   required
                 />
-                <p className="text-sm text-text-muted mt-2">
-                  We'll send your custom song and order updates to this email.
-                </p>
+                {validationErrors.email && (
+                  <p className="text-sm text-red-600 mt-2">{validationErrors.email}</p>
+                )}
+                {!validationErrors.email && (
+                  <p className="text-sm text-text-muted mt-2">
+                    We'll send your custom song and order updates to this email.
+                  </p>
+                )}
               </div>
 
               {/* Phone Number */}
@@ -636,18 +748,24 @@ export default function CreateSong() {
                 <label htmlFor="contact-phone" className="block font-body font-semibold text-text-main mb-3">
                   Phone Number <span className="text-primary">*</span>
                 </label>
-                <input
-                  type="tel"
-                  id="contact-phone"
+                <PhoneInputComponent
                   value={intakeData.phoneNumber}
-                  onChange={(e) => updateIntakeData('phoneNumber', e.target.value)}
+                  onChange={(value) => updateIntakeData('phoneNumber', value)}
+                  onValidationChange={handlePhoneValidation}
+                  onBlur={() => handleFieldBlur('phone')}
                   placeholder="Enter your phone number"
-                  className="w-full px-4 py-3 text-base border border-primary/20 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-white shadow-soft"
-                  required
+                  error={validationErrors.phone}
                 />
-                <p className="text-sm text-text-muted mt-2">
-                  For important updates about your order (we won't spam you).
-                </p>
+                {!validationErrors.phone && (
+                  <p className="text-sm text-text-muted mt-2">
+                    For important updates about your order (we won't spam you).
+                  </p>
+                )}
+                {phoneValidation.isValid && phoneValidation.display && (
+                  <p className="text-sm text-green-600 mt-2">
+                    ✓ {phoneValidation.display} ({phoneValidation.country})
+                  </p>
+                )}
               </div>
             </div>
           </StepContainer>

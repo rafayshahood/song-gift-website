@@ -43,6 +43,11 @@ const defaultIntakeData: IntakeData = {
   email: '',
   phoneNumber: '',
   
+  // Enhanced phone fields for international support
+  customer_phone_e164: '',
+  customer_phone_display: '',
+  customer_phone_country: '',
+  
   // Other steps (keeping existing for now)
   songType: '',
   recipient: '',
